@@ -17,13 +17,16 @@ const DOCSUpload = () => {
 
             const formData = new FormData()
             formData.append("file", fileUploaded)
-            console.log(formData)
+            const baseFileName = fileUploaded.name.replace(/\.[^/.]+$/, "");
+            formData.append("baseFileName", baseFileName);
+            
             try {
                 const response = await axios.post('http://localhost:3001/docsupload', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 })
                 alert("Successfully uploaded")
             } catch (error) {
+                console.log(error)
                 alert("Error uploading file.");
             }
         } else {

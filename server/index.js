@@ -4,11 +4,12 @@ import multer from 'multer';
 import {fileTypeFromStream} from 'file-type';
 import fs from 'node:fs';
 import libre from 'libreoffice-convert';
+import { promisify } from 'util';
 
 const app = express()
 const PORT = process.env.PORT || 3001
 const upload = multer({ dest: 'uploads/' })
-libre.convertAsync = require('util').promisify(libre.convert)
+libre.convertAsync = promisify(libre.convert);
 
 const extAllowed = ["docx"]
 const mimeAllowed = ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
@@ -31,10 +32,16 @@ app.post('/user-info', (req, res) => {
 app.post('/docsupload', upload.single('file'), async (req, res) => {
     try {
         const stream = fs.createReadStream(req.file.path)
+        const baseFileName = req.body.baseFileName;
         const fileType = await fileTypeFromStream(stream)
         if (fileType) {
             if (extAllowed.includes(fileType.ext) || mimeAllowed.includes(fileType.mine)) {
-                console.log(`File valid: ${fileType.ext}`)
+                const fileContent = fs.readFileSync(req.file.path)
+                const pdfBuffer = await libre.convertAsync(fileContent, '.pdf', undefined)
+                const outputPath = `uploads/${baseFileName}.pdf`;
+                fs.writeFileSync(outputPath, pdfBuffer)
+                res.send('File converted to PDF successfully.')
+                console.log("done")
             } else {
                 console.log(`Invalid`)
             }
